@@ -1,0 +1,31 @@
+services:
+  agentd:
+    build: .
+    hostname: agentd
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 75s
+    shm_size: 512m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      AGENTD_MODE: ${AGENTD_MODE:-desktop}
+    ports:
+      - "127.0.0.1:${AGENTD_DESKTOP_PORT:-6080}:6080"
+    volumes:
+      - agentd-data:/home/agentd/.agentd
+      - agentd-workspace:/home/agentd/workspace
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS --noproxy '*' --max-time 2 -o /dev/null http://127.0.0.1:9222/json/version
+          && curl -fsS --noproxy '*' --max-time 2 -o /dev/null http://127.0.0.1:6080/vnc.html
+      start_period: 60s
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  agentd-data:
+  agentd-workspace:

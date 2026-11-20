@@ -1,0 +1,119 @@
+# agentd config. Relative paths resolve against this file's directory.
+workspace: workspace      # where worker file/shell tools operate
+data_dir: data            # SQLite DB + logs
+skills_dir: skills
+distiller: haiku          # cheap model that distills chats into memory
+
+providers:
+  anthropic:
+    type: anthropic
+    api_key_env: ANTHROPIC_API_KEY
+  # Any OpenAI-compatible endpoint (OpenRouter, DeepSeek, Ollama, vLLM...):
+  openrouter:
+    type: openai
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+  ollama:
+    type: openai
+    base_url: http://localhost:11434/v1
+
+models:
+  sonnet:
+    provider: anthropic
+    id: claude-sonnet-5-5
+    effort: medium
+    max_tokens: 16000
+    fallback: true
+    card: "Nhanh, thông minh, giá vừa. Hợp: hội thoại, lên kế hoạch, research, viết, code vừa phải."
+  opus:
+    provider: anthropic
+    id: claude-opus-5-5
+    effort: high
+    max_tokens: 64000
+    fallback: true
+    card: "Mạnh nhất, đắt hơn. Hợp: code phức tạp, kiến trúc, debug khó, suy luận nhiều bước."
+  haiku:
+    provider: anthropic
+    id: claude-haiku-5-5
+    effort: low
+    max_tokens: 8000
+    card: "Rất rẻ và nhanh. Hợp: việc lặt vặt, tóm tắt, trích xuất, xử lý hàng loạt."
+  # Example of a non-Claude model (needs OPENROUTER_API_KEY):
+  # deepseek:
+  #   provider: openrouter
+  #   id: deepseek/deepseek-chat
+  #   card: "Rẻ, code khá. Hợp: việc code khối lượng lớn, ít rủi ro."
+
+roles:
+  chat:
+    model: sonnet
+    prompt: souls/SOUL.md
+    max_tool_calls: 8
+    tools: [web_search, web_fetch, calc, get_time, read_file, list_dir, recall, remember, forget,
+            use_skill, read_skill_file, delegate, agent_status, agent_inspect, browser_view, cancel_agent, send_message, send_file,
+            self_read, self_write, self_reload]
+    ask: [self_write]     # changing its own config needs your approval
+  coder:
+    description: "Viết/sửa/chạy code, tạo file, dùng shell trong workspace."
+    model: opus
+    effort: high          # default for tasks given to this role (delegate can raise, not lower)
+    prompt: roles/coder.md
+    tools: [read_file, write_file, edit_file, list_dir, grep, glob, shell, todo_write,
+            web_search, web_fetch, calc, spawn_agent, send_message, report, list_agents, cancel_agent,
+            recall, remember, use_skill, read_skill_file, self_read, self_write, self_reload]
+    ask: [shell, self_write]   # need your approval (/approve, or /approve <id> all to trust that agent)
+    # Auto-approved shell commands (single command only; anything with ; | & $ > < is still asked).
+    # Build/test commands run project code — remove them if you want to review every run.
+    shell_allow: ["ls*", "pwd", "cd *", "mkdir *", "wc *", "tree*", "file *",
+                  "git init*", "git status*", "git diff*", "git log*", "git show*", "git branch*", "git add *", "git commit *",
+                  "go build*", "go test*", "go vet*", "cargo build*", "cargo test*",
+                  "npm test*", "npm run *", "npm ci*", "npm install*", "pnpm *", "yarn *",
+                  "pytest*", "python3 -m pytest*", "make*"]
+  researcher:
+    description: "Research sâu trên web, đọc nhiều nguồn, tổng hợp báo cáo có dẫn nguồn."
+    model: sonnet
+    effort: high          # default for tasks given to this role (delegate can raise, not lower)
+    prompt: roles/researcher.md
+    tools: [web_search, web_fetch, calc, write_file, read_file, grep, glob, todo_write,
+            spawn_agent, send_message, report, list_agents, recall, remember, use_skill, read_skill_file]
+  operator:
+    description: "Điều khiển trình duyệt thật của user (giữ cookie, tài khoản đã đăng nhập) và máy tính desktop: mở trang, click, gõ, điền form, lấy dữ liệu sau đăng nhập, dùng app desktop."
+    model: sonnet
+    effort: high          # default for tasks given to this role (delegate can raise, not lower)
+    prompt: roles/operator.md
+    tools: [browser_*, cua_*, web_search, read_file, write_file, list_dir, todo_write,
+            send_message, report, list_agents, recall, remember, use_skill, read_skill_file]
+  helper:
+    description: "Việc nhỏ, rẻ: tóm tắt, trích xuất, định dạng lại, dịch."
+    model: haiku
+    prompt: roles/helper.md
+    tools: [web_fetch, calc, read_file, write_file, send_message, report, recall]
+
+limits:
+  max_depth: 3              # chat=0 → worker=1 → subagent=2 → 3
+  max_children: 5           # concurrent children per agent
+  max_turns: 40             # model calls per worker turn
+  worker_timeout: 30m
+  task_token_budget: 3000000  # tokens per delegated task tree (in+out)
+  chat_max_messages: 60     # chat session is distilled + restarted past this
+  approval_timeout: 10m
+
+# Real browser for the operator role: a normal Chromium with a persistent profile,
+# started by the agent-browser service with --remote-debugging-port. Empty = off.
+browser:
+  cdp: ""                 # e.g. http://127.0.0.1:9222
+
+# External tool servers (MCP over stdio). Tools appear as <name>_<tool>.
+mcp_servers: {}
+#  cua:                    # desktop control: https://github.com/trycua/cua (cua-driver)
+#    command: ~/.local/bin/cua-driver
+#    args: [mcp]
+#    env: {DISPLAY: ":1"}
+#    tools: [get_desktop_state, list_windows, launch_app, get_window_state, click, type_text, press_key, hotkey, scroll, run_steps, zoom, get_guide]
+
+web:
+  search: auto              # auto | tavily | brave | duckduckgo (auto uses TAVILY_API_KEY / BRAVE_API_KEY if set)
+
+telegram:
+  token_env: TELEGRAM_BOT_TOKEN
+  allowed_users: []         # Telegram user ids allowed to talk to the bot; empty = anyone (not recommended)

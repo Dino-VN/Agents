@@ -1,0 +1,16 @@
+**
+!go.mod
+!go.sum
+!assets.go
+!cmd/
+!cmd/**
+!internal/
+!internal/**
+!roles/
+!roles/**
+!skills/
+!skills/**
+!souls/
+!souls/**
+!docker/
+!docker/desktop.sh

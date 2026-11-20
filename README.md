@@ -22,6 +22,24 @@ Mọi thứ nằm trong home của user chạy agentd (giống `~/.hermes`):
 
 Build cho server ARM (Alpine, Raspberry Pi…): `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o bin/agentd-linux-arm64 ./cmd/agentd`
 
+## Chạy bằng Docker
+
+Cần Docker và Docker Compose v2 trở lên. Image hỗ trợ `linux/amd64` và `linux/arm64`, kèm desktop XFCE, Chromium và cua-driver.
+
+```bash
+docker compose up -d --build --wait
+docker compose exec agentd agentd setup   # nhập API key và chọn model ở lần đầu
+docker compose exec agentd agentd         # chat trong terminal
+```
+
+Mở [desktop qua noVNC](http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale) để sử dụng Chromium và các ứng dụng XFCE. Role `operator` tự có các tool `browser_*` (Chromium qua CDP) và `cua_*` (desktop qua MCP). Nếu một website yêu cầu đăng nhập, bạn có thể tự đăng nhập trong noVNC. Profile Chromium, cấu hình, lịch sử và workspace được giữ trong Docker volumes qua các lần khởi động lại.
+
+Để chạy bot Telegram nền, nhập token và ID người dùng được phép khi chạy `setup`, thêm `AGENTD_MODE=telegram` vào file `.env` cạnh `compose.yaml`, rồi chạy `docker compose up -d --wait`.
+
+- Đổi cổng noVNC bằng `AGENTD_DESKTOP_PORT=6081` trong `.env`. Cổng này chỉ lắng nghe trên localhost của máy chạy Docker. Nếu Docker chạy trên server, có thể mở desktop qua SSH tunnel với `ssh -N -L 6080:127.0.0.1:6080 user@server`.
+- Chromium dùng `--no-sandbox` để tương thích với cấu hình Docker mặc định. Container chạy bằng user thường và CDP chỉ mở trên loopback bên trong container.
+- Dừng bằng `docker compose down`. Theo dõi desktop bằng `docker compose logs -f agentd`. Log ứng dụng nằm ở `/home/agentd/.agentd/data/agentd.log` trong container.
+
 ## Lệnh
 
 `/status` cây agent + todo của worker · `/stop` dừng mọi worker · `/think [low|medium|high|xhigh|max|default]` mức suy nghĩ của chat · `/reload` nạp lại config/skills · `/memory` · `/forget <id>` · `/skills` · `/approve [id] [all]` `/deny [id]` duyệt lệnh · `/<tên-skill> <yêu cầu>`
