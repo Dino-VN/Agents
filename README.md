@@ -32,7 +32,9 @@ docker compose exec agentd agentd setup   # nhập API key và chọn model ở 
 docker compose exec agentd agentd         # chat trong terminal
 ```
 
-Mở [desktop qua noVNC](http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale) để sử dụng Chromium và các ứng dụng XFCE. Role `operator` tự có các tool `browser_*` (Chromium qua CDP) và `cua_*` (desktop qua MCP). Nếu một website yêu cầu đăng nhập, bạn có thể tự đăng nhập trong noVNC. Profile Chromium, cấu hình, lịch sử và workspace được giữ trong Docker volumes qua các lần khởi động lại.
+Mở desktop trong trình duyệt để sử dụng Chromium và các ứng dụng XFCE. Role `operator` tự có các tool `browser_*` (Chromium qua CDP) và `cua_*` (desktop qua MCP). Nếu một website yêu cầu đăng nhập, bạn có thể tự đăng nhập trong noVNC. [Mở desktop qua noVNC](http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale)
+
+Dockerfile tạo user Linux `agentd` (UID 1000) và chạy ứng dụng, Chromium, XFCE dưới user này. Volume `agentd-home` lưu toàn bộ `/home/agentd`, gồm profile Chromium, cài đặt desktop, cấu hình và lịch sử ứng dụng, file tải xuống và workspace. `docker compose down` giữ lại dữ liệu này. `docker compose down -v` xóa volume và dữ liệu bên trong.
 
 Để chạy bot Telegram nền, nhập token và ID người dùng được phép khi chạy `setup`, thêm `AGENTD_MODE=telegram` vào file `.env` cạnh `compose.yaml`, rồi chạy `docker compose up -d --wait`.
 

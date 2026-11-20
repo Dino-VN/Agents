@@ -16,6 +16,7 @@ if [[ $mode == telegram && ! -f $AGENTD_HOME/config.yaml ]]; then
 fi
 
 wait_until_ready() {
+    local attempt
     for ((attempt = 0; attempt < 30; attempt++)); do
         if "$@" >/dev/null 2>&1; then
             return
@@ -77,6 +78,6 @@ if [[ $mode == telegram ]]; then
     telegram_pid=$!
 fi
 
-wait -n
+wait -n || true
 echo 'A desktop or gateway process exited.' >&2
 exit 1

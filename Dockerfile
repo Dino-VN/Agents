@@ -35,6 +35,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
       xfce4-panel xfce4-session xfce4-terminal xfdesktop4 xfwm4 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 --user-group --shell /bin/bash agentd \
+    && chmod 0700 /home/agentd \
     && install -d -m 0700 -o agentd -g agentd /home/agentd/.agentd /home/agentd/workspace \
     && install -d -m 1777 /tmp/.X11-unix
 

@@ -13,8 +13,7 @@ services:
     ports:
       - "127.0.0.1:${AGENTD_DESKTOP_PORT:-6080}:6080"
     volumes:
-      - agentd-data:/home/agentd/.agentd
-      - agentd-workspace:/home/agentd/workspace
+      - agentd-home:/home/agentd
     healthcheck:
       test:
         - CMD-SHELL
@@ -27,5 +26,4 @@ services:
       retries: 3
 
 volumes:
-  agentd-data:
-  agentd-workspace:
+  agentd-home:
